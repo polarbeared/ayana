@@ -6,9 +6,13 @@ import { body, validationResult } from 'express-validator';
 import nodemailer from 'nodemailer';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
 
 // Load environment variables
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const isDirectRun = process.argv[1] === __filename;
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -64,8 +68,8 @@ const validateEnquiry = [
     .trim()
     .isLength({ min: 2, max: 100 })
     .withMessage('Name must be between 2 and 100 characters')
-    .matches(/^[a-zA-Z\s]+$/)
-    .withMessage('Name can only contain letters and spaces'),
+    .matches(/^[a-zA-Z\s\-']+$/)
+    .withMessage('Name can only contain letters, spaces, hyphens, and apostrophes'),
   
   body('email')
     .isEmail()
@@ -343,9 +347,13 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Vela backend server running on port ${PORT}`);
-  console.log(`📧 Email service: ${process.env.EMAIL_SERVICE || 'SMTP'}`);
-  console.log(`🎯 Sending emails to: ${process.env.EMAIL_TO || 'admin@zengroup.com.au'}`);
-});
+// Only start the Express listener when running this file directly (e.g. local dev)
+if (isDirectRun && process.env.VERCEL !== '1') {
+  app.listen(PORT, () => {
+    console.log(`🚀 Vela backend server running on port ${PORT}`);
+    console.log(`📧 Email service: ${process.env.EMAIL_SERVICE || 'SMTP'}`);
+    console.log(`🎯 Sending emails to: ${process.env.EMAIL_TO || 'admin@zengroup.com.au'}`);
+  });
+}
+
+export default app;

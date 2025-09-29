@@ -35,6 +35,7 @@ function Register() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [recaptchaLoaded, setRecaptchaLoaded] = useState(false)
 
   // Load reCAPTCHA Enterprise script
@@ -65,9 +66,12 @@ function Register() {
     
     if (!recaptchaLoaded) {
       setSubmitStatus('error')
+      setErrorMessage('Security challenge is still loading. Please try again in a moment.')
       return
     }
     
+    setSubmitStatus('idle')
+    setErrorMessage(null)
     setIsSubmitting(true)
     
     try {
@@ -87,15 +91,20 @@ function Register() {
         }),
       })
       
+      const result = await response.json().catch(() => null)
+
       if (response.ok) {
         setSubmitStatus('success')
+        setErrorMessage(null)
         setFormData({ name: '', email: '', phone: '', postcode: '', message: '' })
       } else {
         setSubmitStatus('error')
+        setErrorMessage(result?.message || 'There was an error submitting your enquiry. Please try again.')
       }
     } catch (error) {
       console.error('Form submission error:', error)
       setSubmitStatus('error')
+      setErrorMessage('There was an unexpected error submitting your enquiry. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -132,7 +141,7 @@ function Register() {
           
           {submitStatus === 'error' && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              There was an error submitting your enquiry. Please try again.
+              {errorMessage || 'There was an error submitting your enquiry. Please try again.'}
             </div>
           )}
 
