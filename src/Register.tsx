@@ -87,13 +87,13 @@ function Register() {
 
           {/* Success/Error Messages */}
           {submitStatus === 'success' && (
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+            <div className="bg-warm-off-white/90 border border-muted-gold/60 text-smoked-black px-4 py-3 mb-4 tracking-[0.1em] uppercase text-xs md:text-sm">
               Thank you for your enquiry. We'll be in touch soon.
             </div>
           )}
           
           {submitStatus === 'error' && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <div className="bg-smoked-black/90 border border-smoked-black text-warm-off-white px-4 py-3 mb-4 tracking-[0.1em] uppercase text-xs md:text-sm">
               There was an error submitting your enquiry. Please try again.
             </div>
           )}
