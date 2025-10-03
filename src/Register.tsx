@@ -1,6 +1,6 @@
 import './App.css'
 import Nav from './components/nav'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 interface FormData {
@@ -9,18 +9,7 @@ interface FormData {
   phone: string
   postcode: string
   message: string
-}
-
-// Declare grecaptcha type
-declare global {
-  interface Window {
-    grecaptcha: {
-      enterprise: {
-        ready: (callback: () => void) => void;
-        execute: (siteKey: string, options: { action: string }) => Promise<string>;
-      };
-    };
-  }
+  bedrooms: string
 }
 
 function Register() {
@@ -30,65 +19,32 @@ function Register() {
     email: '',
     phone: '',
     postcode: '',
-    message: ''
+    message: '',
+    bedrooms: ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
-  const [recaptchaLoaded, setRecaptchaLoaded] = useState(false)
-
-  // Load reCAPTCHA Enterprise script
-  useEffect(() => {
-    const script = document.createElement('script')
-    script.src = 'https://www.google.com/recaptcha/enterprise.js?render=6LegEssrAAAAAMIdXnC2pscbns4MiKIP4es3kBWk'
-    script.async = true
-    script.defer = true
-    script.onload = () => {
-      window.grecaptcha.enterprise.ready(() => {
-        setRecaptchaLoaded(true)
-      })
-    }
-    document.head.appendChild(script)
-
-    return () => {
-      document.head.removeChild(script)
-    }
-  }, [])
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!recaptchaLoaded) {
-      setSubmitStatus('error')
-      return
-    }
-    
     setIsSubmitting(true)
-    
+
     try {
-      // Execute reCAPTCHA Enterprise
-      const token = await window.grecaptcha.enterprise.execute('6LegEssrAAAAAMIdXnC2pscbns4MiKIP4es3kBWk', {
-        action: 'submit_enquiry'
-      })
-      
       const response = await fetch('/api/enquiry', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          captchaToken: token
-        }),
+        body: JSON.stringify(formData),
       })
       
       if (response.ok) {
         setSubmitStatus('success')
-        setFormData({ name: '', email: '', phone: '', postcode: '', message: '' })
+        setFormData({ name: '', email: '', phone: '', postcode: '', message: '', bedrooms: '' })
       } else {
         setSubmitStatus('error')
       }
@@ -111,8 +67,8 @@ function Register() {
           loading="lazy"
         />
       </div>
-      <div className="absolute inset-0 bg-gradient-to-br from-smoked-black/92 via-smoked-black/75 to-muted-gold/55">
-        <div className="absolute inset-0 bg-smoked-black/40"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-muted-gold/78 via-muted-gold/52 to-warm-off-white/38">
+        <div className="absolute inset-0 bg-warm-off-white/28"></div>
       </div>
       
       {/* Navigation */}
@@ -122,7 +78,7 @@ function Register() {
       
       {/* Form Container */}
       <div className="relative z-10 flex items-center justify-center min-h-[calc(100vh-100px)] md:min-h-[calc(100vh-120px)] p-4 md:p-8">
-        <div className="bg-warm-off-white/95 backdrop-blur-sm p-4 md:p-8 rounded-none max-w-2xl w-full mx-auto">
+        <div className="bg-white/90 backdrop-blur-md p-4 md:p-8 rounded-none max-w-2xl w-full mx-auto shadow-xl">
           {/* Heading */}
           <div className="text-center mb-6 md:mb-8">
             <h1 className="font-serif tracking-[0.22em] text-2xl md:text-3xl text-smoked-black mb-2 uppercase">Register Your Interest</h1>
@@ -201,6 +157,24 @@ function Register() {
             </div>
 
             <div>
+              <select
+                id="bedrooms"
+                name="bedrooms"
+                value={formData.bedrooms}
+                onChange={handleInputChange}
+                required
+                className="w-full px-3 md:px-4 py-2 md:py-3 border border-sandstone focus:outline-none focus:border-muted-gold bg-white text-sm md:text-base text-smoked-black appearance-none"
+              >
+                <option value="" disabled>
+                  Preferred residence size
+                </option>
+                <option value="2">2 bedroom residence</option>
+                <option value="3">3 bedroom residence</option>
+                <option value="4">4 bedroom residence</option>
+              </select>
+            </div>
+
+            <div>
               <textarea
                 id="message"
                 name="message"
@@ -212,19 +186,12 @@ function Register() {
               />
             </div>
 
-            {/* reCAPTCHA Enterprise - invisible, automatically handled */}
-            <div className="text-center text-xs text-muted-gold tracking-[0.08em]">
-              This site is protected by reCAPTCHA Enterprise and the Google{' '}
-              <a href="https://policies.google.com/privacy" className="underline">Privacy Policy</a> and{' '}
-              <a href="https://policies.google.com/terms" className="underline">Terms of Service</a> apply.
-            </div>
-
             {/* Submit Button */}
             <div className="flex flex-col md:flex-row gap-3 md:gap-4">
               <button
                 type="submit"
-                disabled={isSubmitting || !recaptchaLoaded}
-                className="flex-1 bg-smoked-black text-warm-off-white font-serif button-reset py-3 px-4 md:px-6 hover:bg-muted-gold hover:text-smoked-black transition-colors duration-300 disabled:opacity-50 text-sm md:text-base tracking-[0.18em]"
+                disabled={isSubmitting}
+                className="flex-1 bg-warm-off-white text-smoked-black font-serif button-reset py-3 px-4 md:px-6 border border-smoked-black/30 hover:bg-smoked-black hover:text-warm-off-white transition-colors duration-300 disabled:opacity-50 text-sm md:text-base tracking-[0.18em]"
               >
                 {isSubmitting ? 'SUBMITTING...' : 'SUBMIT ENQUIRY'}
               </button>
@@ -232,7 +199,7 @@ function Register() {
               <button
                 type="button"
                 onClick={() => navigate('/')}
-                className="px-4 md:px-6 py-3 border border-smoked-black text-smoked-black font-serif button-reset hover:bg-smoked-black hover:text-warm-off-white transition-colors duration-300 text-sm md:text-base tracking-[0.18em]"
+                className="px-4 md:px-6 py-3 border border-smoked-black/30 bg-transparent text-smoked-black font-serif button-reset hover:bg-smoked-black hover:text-warm-off-white transition-colors duration-300 text-sm md:text-base tracking-[0.18em]"
               >
                 BACK
               </button>

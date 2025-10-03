@@ -3,22 +3,27 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { body, validationResult } from 'express-validator';
-import nodemailer from 'nodemailer';
-import fetch from 'node-fetch';
 import dotenv from 'dotenv';
+import path from 'path';
 import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { Resend } from 'resend';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Load environment variables
-dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const isDirectRun = process.argv[1] === __filename;
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Security middleware
-app.use(helmet());
+// Security middleware (disable CSP report-only noise for current setup)
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true
@@ -34,32 +39,33 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 app.use(express.json({ limit: '10mb' }));
 
-// Email transporter setup
-const createTransporter = () => {
-  if (process.env.EMAIL_SERVICE === 'gmail') {
-    return nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
+// Resend
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+
+// Resend email sending function
+const sendEmailWithResend = async (mailOptions) => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: mailOptions.from,
+      to: mailOptions.to,
+      subject: mailOptions.subject,
+      text: mailOptions.text,
+      html: mailOptions.html,
+      reply_to: mailOptions.replyTo
     });
-  }
-  
-  // SMTP configuration for custom email servers
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === 'true' || false, // true for 465, false for other ports
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    },
-    tls: {
-      // Don't fail on invalid certs (can be set to false for development)
-      rejectUnauthorized: true
+    
+    if (error) {
+      console.error('❌ Resend email error:', error);
+      throw new Error(`Resend email failed: ${error.message}`);
     }
-  });
+    
+    console.log('✅ Resend email sent successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('💥 Resend email sending error:', error);
+    throw error;
+  }
 };
 
 // Validation middleware
@@ -86,76 +92,17 @@ const validateEnquiry = [
     .isLength({ min: 3, max: 10 })
     .withMessage('Please provide a valid postcode'),
   
+  body('bedrooms')
+    .trim()
+    .isIn(['2', '3', '4'])
+    .withMessage('Please select a valid residence preference'),
+  
   body('message')
     .optional()
     .trim()
     .isLength({ max: 1000 })
-    .withMessage('Message cannot exceed 1000 characters'),
-  
-  body('captchaToken')
-    .notEmpty()
-    .withMessage('Please complete the captcha verification')
+    .withMessage('Message cannot exceed 1000 characters')
 ];
-
-// reCAPTCHA Enterprise verification function
-const verifyRecaptchaEnterprise = async (token) => {
-  console.log('🔐 verifyRecaptchaEnterprise() called with token:', token);
-  try {
-    const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
-    const apiKey = process.env.GOOGLE_CLOUD_API_KEY;
-    const siteKey = process.env.RECAPTCHA_SITE_KEY;
-    
-    console.log('🔧 reCAPTCHA config:');
-    console.log('  Project ID:', projectId);
-    console.log('  API Key:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT SET');
-    console.log('  Site Key:', siteKey);
-    
-    const verificationURL = `https://recaptchaenterprise.googleapis.com/v1/projects/${projectId}/assessments?key=${apiKey}`;
-    console.log('🌐 Verification URL:', verificationURL);
-    
-    const requestBody = {
-      event: {
-        token: token,
-        expectedAction: 'submit_enquiry',
-        siteKey: siteKey,
-      }
-    };
-    console.log('📋 Request body:', JSON.stringify(requestBody, null, 2));
-    
-    console.log('📡 Making request to Google reCAPTCHA Enterprise API...');
-    const response = await fetch(verificationURL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody)
-    });
-    
-    console.log('📨 Response status:', response.status);
-    console.log('📨 Response headers:', JSON.stringify([...response.headers.entries()], null, 2));
-    
-    const data = await response.json();
-    console.log('📋 reCAPTCHA Enterprise verification result:', JSON.stringify(data, null, 2));
-    
-    // Check if token is valid and get risk score
-    if (data.tokenProperties && data.tokenProperties.valid) {
-      const score = data.riskAnalysis?.score || 0;
-      const minScore = parseFloat(process.env.RECAPTCHA_MIN_SCORE) || 0.5;
-      console.log(`📊 reCAPTCHA Enterprise score: ${score}, minimum required: ${minScore}`);
-      const isValid = score >= minScore;
-      console.log(`✅ Score check result: ${isValid}`);
-      return isValid;
-    } else {
-      console.log('❌ Token invalid. Reason:', data.tokenProperties?.invalidReason);
-      return false;
-    }
-    
-  } catch (error) {
-    console.error('💥 reCAPTCHA Enterprise verification error:', error);
-    console.error('Error stack:', error.stack);
-    return false;
-  }
-};
 
 // Enquiry submission endpoint
 app.post('/api/enquiry', validateEnquiry, async (req, res) => {
@@ -177,50 +124,22 @@ app.post('/api/enquiry', validateEnquiry, async (req, res) => {
     }
     console.log('✅ Validation passed');
 
-    const { name, email, phone, postcode, message, captchaToken } = req.body;
+    const { name, email, phone, postcode, message, bedrooms } = req.body;
     console.log('📋 Extracted form data:');
     console.log('  Name:', name);
     console.log('  Email:', email);
     console.log('  Phone:', phone);
     console.log('  Postcode:', postcode);
     console.log('  Message:', message);
-    console.log('  CaptchaToken:', captchaToken);
+    console.log('  Bedrooms:', bedrooms);
     
-    // Verify reCAPTCHA (or bypass in development)
-    const bypassRecaptcha = process.env.BYPASS_RECAPTCHA === 'true';
-    console.log('🔐 reCAPTCHA check - Bypass enabled:', bypassRecaptcha);
-    
-    if (bypassRecaptcha) {
-      console.log('⚠️  reCAPTCHA validation bypassed for development');
+    // Verify Resend API key is configured (non-blocking in local dev)
+    console.log('📧 Verifying Resend configuration...');
+    const resendConfigured = Boolean(process.env.RESEND_API_KEY);
+    if (!resendConfigured) {
+      console.warn('⚠️ RESEND_API_KEY not set. Email delivery disabled for this run.');
     } else {
-      console.log('🔍 Starting reCAPTCHA Enterprise verification...');
-      const isValidRecaptcha = await verifyRecaptchaEnterprise(captchaToken);
-      console.log('🔍 reCAPTCHA verification result:', isValidRecaptcha);
-      if (!isValidRecaptcha) {
-        console.log('❌ reCAPTCHA verification FAILED - returning 400 error');
-        return res.status(400).json({
-          success: false,
-          message: 'reCAPTCHA verification failed. Please try again.'
-        });
-      }
-      console.log('✅ reCAPTCHA verified successfully');
-    }
-    
-    // Create email transporter
-    console.log('📧 Creating email transporter...');
-    const transporter = createTransporter();
-    
-    // Verify transporter configuration
-    console.log('🔍 Verifying email transporter...');
-    try {
-      await transporter.verify();
-      console.log('✅ Email transporter verified successfully');
-    } catch (error) {
-      console.error('❌ Email transporter verification failed:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Email service configuration error'
-      });
+      console.log('✅ Resend configuration verified successfully');
     }
 
     // Email content
@@ -259,6 +178,10 @@ app.post('/api/enquiry', validateEnquiry, async (req, res) => {
             <div class="label">Postcode:</div>
             <div class="value">${postcode}</div>
           </div>
+          <div class="field">
+            <div class="label">Residence Preference:</div>
+            <div class="value">${bedrooms}-bedroom</div>
+          </div>
           ${message ? `
           <div class="field">
             <div class="label">Message:</div>
@@ -269,13 +192,9 @@ app.post('/api/enquiry', validateEnquiry, async (req, res) => {
             <div class="label">Submitted:</div>
             <div class="value">${new Date().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' })}</div>
           </div>
-          <div class="field">
-            <div class="label">reCAPTCHA:</div>
-            <div class="value">✅ Verified</div>
-          </div>
         </div>
         <div class="footer">
-          This enquiry was submitted through the Ayana website enquiry form with reCAPTCHA verification.
+          This enquiry was submitted through the Ayana website enquiry form.
         </div>
       </body>
       </html>
@@ -288,24 +207,24 @@ Name: ${name}
 Email: ${email}
 Phone: ${phone}
 Postcode: ${postcode}
+Residence Preference: ${bedrooms}-bedroom
 ${message ? `Message: ${message}\n` : ''}
 Submitted: ${new Date().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' })}
-reCAPTCHA: ✅ Verified
 
-This enquiry was submitted through the Ayana website enquiry form with reCAPTCHA verification.
+This enquiry was submitted through the Ayana website enquiry form.
     `;
 
-    // Send email
+    // Send email using Resend
     const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_TO || 'admin@zengroup.com.au',
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'hello@ayanawestend.com.au',
+      to: process.env.EMAIL_TO || 'ed@zengroup.com.au',
       subject: `New Ayana Enquiry - ${name}`,
       text: emailText,
       html: emailHTML,
       replyTo: email
     };
 
-    console.log('📤 Sending email...');
+    console.log('📤 Sending email with Resend...');
     console.log('Email options:', JSON.stringify({
       from: mailOptions.from,
       to: mailOptions.to,
@@ -313,15 +232,20 @@ This enquiry was submitted through the Ayana website enquiry form with reCAPTCHA
       replyTo: mailOptions.replyTo
     }, null, 2));
     
-    await transporter.sendMail(mailOptions);
-    console.log('✅ Email sent successfully!');
+    if (resendConfigured) {
+      await sendEmailWithResend(mailOptions);
+      console.log('✅ Email sent successfully with Resend!');
+    } else {
+      console.log('📭 Email not sent because RESEND_API_KEY is missing. Payload logged above for review.');
+    }
     
     // Log successful submission
     console.log(`🎉 Enquiry submitted successfully: ${name} (${email}) at ${new Date().toISOString()}`);
     
     const successResponse = {
       success: true,
-      message: 'Enquiry submitted successfully'
+      message: 'Enquiry submitted successfully',
+      emailSent: resendConfigured,
     };
     console.log('📤 Sending success response:', JSON.stringify(successResponse, null, 2));
     res.json(successResponse);
@@ -348,11 +272,12 @@ app.get('/api/health', (req, res) => {
 });
 
 // Only start the Express listener when running this file directly (e.g. local dev)
-if (isDirectRun && process.env.VERCEL !== '1') {
+if (process.env.VERCEL !== '1') {
   app.listen(PORT, () => {
     console.log(`🚀 Ayana backend server running on port ${PORT}`);
-    console.log(`📧 Email service: ${process.env.EMAIL_SERVICE || 'SMTP'}`);
-    console.log(`🎯 Sending emails to: ${process.env.EMAIL_TO || 'admin@zengroup.com.au'}`);
+    console.log(`📧 Email service: Resend`);
+    console.log(`🎯 Sending emails to: ${process.env.EMAIL_TO || 'ed@zengroup.com.au'}`);
+    console.log('👋 Backend ready – Hello world! Submit the form to see full request logs.');
   });
 }
 
