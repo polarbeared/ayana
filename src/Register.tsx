@@ -1,5 +1,4 @@
 import './App.css'
-import background from '/images/external.jpg'
 import Nav from './components/nav'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -102,11 +101,18 @@ function Register() {
   }
 
   return (
-    <div className="relative w-full min-h-screen">
+    <div className="relative w-full min-h-screen overflow-hidden">
       {/* Background */}
-      <div className="absolute inset-0 bg-cover bg-center bg-no-repeat">
-        <img src={background} alt="Background" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-black/60"></div>
+      <div className="absolute inset-0">
+        <img
+          src="/background.jpg"
+          alt="Residences background"
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+      </div>
+      <div className="absolute inset-0 bg-gradient-to-br from-smoked-black/92 via-smoked-black/75 to-muted-gold/55">
+        <div className="absolute inset-0 bg-smoked-black/40"></div>
       </div>
       
       {/* Navigation */}
@@ -116,11 +122,11 @@ function Register() {
       
       {/* Form Container */}
       <div className="relative z-10 flex items-center justify-center min-h-[calc(100vh-100px)] md:min-h-[calc(100vh-120px)] p-4 md:p-8">
-        <div className="bg-soft-sand/95 backdrop-blur-sm p-4 md:p-8 rounded-none max-w-2xl w-full mx-auto">
-          {/* Logo */}
+        <div className="bg-warm-off-white/95 backdrop-blur-sm p-4 md:p-8 rounded-none max-w-2xl w-full mx-auto">
+          {/* Heading */}
           <div className="text-center mb-6 md:mb-8">
-            <h1 className="freight-display text-2xl md:text-3xl text-sage-green mb-2">REGISTER YOUR INTEREST</h1>
-            <p className="text-mooring-grey text-xs md:text-sm">Complete the form below and we'll be in touch</p>
+            <h1 className="font-serif tracking-[0.22em] text-2xl md:text-3xl text-smoked-black mb-2 uppercase">Register Your Interest</h1>
+            <p className="text-muted-gold text-xs md:text-sm font-sans tracking-[0.1em]">Complete the form below and we'll be in touch</p>
           </div>
 
           {/* Success/Error Messages */}
@@ -140,9 +146,6 @@ function Register() {
           <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <div>
-                {/* <label htmlFor="name" className="block text-sage-green freight-display text-sm font-medium mb-2">
-                  NAME *
-                </label> */}
                 <input
                   type="text"
                   id="name"
@@ -151,14 +154,11 @@ function Register() {
                   onChange={handleInputChange}
                   required
                   placeholder="Name"
-                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-mooring-grey focus:outline-none focus:border-sage-green bg-white text-sm md:text-base"
+                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-sandstone focus:outline-none focus:border-muted-gold bg-white text-sm md:text-base text-smoked-black"
                 />
               </div>
               
               <div>
-                {/* <label htmlFor="email" className="block text-sage-green freight-display text-sm font-medium mb-2">
-                  EMAIL *
-                </label> */}
                 <input
                   type="email"
                   id="email"
@@ -167,16 +167,13 @@ function Register() {
                   value={formData.email}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-mooring-grey focus:outline-none focus:border-sage-green bg-white text-sm md:text-base"
+                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-sandstone focus:outline-none focus:border-muted-gold bg-white text-sm md:text-base text-smoked-black"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <div>
-                {/* <label htmlFor="phone" className="block text-sage-green freight-display text-sm font-medium mb-2">
-                  PHONE *
-                </label> */}
                 <input
                   type="tel"
                   id="phone"
@@ -185,14 +182,11 @@ function Register() {
                   value={formData.phone}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-mooring-grey focus:outline-none focus:border-sage-green bg-white text-sm md:text-base"
+                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-sandstone focus:outline-none focus:border-muted-gold bg-white text-sm md:text-base text-smoked-black"
                 />
               </div>
               
               <div>
-                {/* <label htmlFor="postcode" className="block text-sage-green freight-display text-sm font-medium mb-2">
-                  POSTCODE *
-                </label> */}
                 <input
                   type="text"
                   id="postcode"
@@ -201,28 +195,25 @@ function Register() {
                   value={formData.postcode}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-mooring-grey focus:outline-none focus:border-sage-green bg-white text-sm md:text-base"
+                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-sandstone focus:outline-none focus:border-muted-gold bg-white text-sm md:text-base text-smoked-black"
                 />
               </div>
             </div>
 
             <div>
-              {/* <label htmlFor="message" className="block text-sage-green freight-display text-sm font-medium mb-2">
-                MESSAGE
-              </label> */}
               <textarea
                 id="message"
                 name="message"
-                placeholder="Message"
+                placeholder="Message (optional)"
                 value={formData.message}
                 onChange={handleInputChange}
                 rows={3}
-                className="w-full px-3 md:px-4 py-2 md:py-3 border border-mooring-grey focus:outline-none focus:border-sage-green bg-white resize-none text-sm md:text-base"
+                className="w-full px-3 md:px-4 py-2 md:py-3 border border-sandstone focus:outline-none focus:border-muted-gold bg-white resize-none text-sm md:text-base text-smoked-black"
               />
             </div>
 
             {/* reCAPTCHA Enterprise - invisible, automatically handled */}
-            <div className="text-center text-xs text-mooring-grey">
+            <div className="text-center text-xs text-muted-gold tracking-[0.08em]">
               This site is protected by reCAPTCHA Enterprise and the Google{' '}
               <a href="https://policies.google.com/privacy" className="underline">Privacy Policy</a> and{' '}
               <a href="https://policies.google.com/terms" className="underline">Terms of Service</a> apply.
@@ -233,7 +224,7 @@ function Register() {
               <button
                 type="submit"
                 disabled={isSubmitting || !recaptchaLoaded}
-                className="flex-1 bg-sage-green text-soft-sand freight-display py-3 px-4 md:px-6 hover:bg-deep-river transition-colors duration-300 disabled:opacity-50 text-sm md:text-base"
+                className="flex-1 bg-smoked-black text-warm-off-white font-serif button-reset py-3 px-4 md:px-6 hover:bg-muted-gold hover:text-smoked-black transition-colors duration-300 disabled:opacity-50 text-sm md:text-base tracking-[0.18em]"
               >
                 {isSubmitting ? 'SUBMITTING...' : 'SUBMIT ENQUIRY'}
               </button>
@@ -241,7 +232,7 @@ function Register() {
               <button
                 type="button"
                 onClick={() => navigate('/')}
-                className="px-4 md:px-6 py-3 border border-sage-green text-sage-green freight-display hover:bg-sage-green hover:text-soft-sand transition-colors duration-300 text-sm md:text-base"
+                className="px-4 md:px-6 py-3 border border-smoked-black text-smoked-black font-serif button-reset hover:bg-smoked-black hover:text-warm-off-white transition-colors duration-300 text-sm md:text-base tracking-[0.18em]"
               >
                 BACK
               </button>

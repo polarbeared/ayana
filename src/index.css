@@ -1,8 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  --color-sage-green: #7F8A77;
-  --color-deep-river: #B06F51;
-  --color-soft-sand: #F0ECE8;
-  --color-mooring-grey: #B4AEA2;
+  --color-smoked-black: #2d2c28;
+  --color-warm-off-white: #eae5da;
+  --color-muted-gold: #ac986c;
+  --color-sandstone: #c8b89e;
+  --color-white: #ffffff;
+
+  --font-sans: 'Suisse Intl', system-ui, sans-serif;
+  --font-serif: 'FH Total Display', serif;
+}
+
+/* Custom fonts are loaded dynamically via FontLoader component */
+
+/* Base styles */
+body {
+  background-color: var(--color-warm-off-white);
+  color: var(--color-smoked-black);
+  font-family: var(--font-sans);
+}
+
+/* Ensure fonts are loaded */
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+.font-sans {
+  font-family: var(--font-sans);
 }

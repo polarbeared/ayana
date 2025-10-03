@@ -240,7 +240,7 @@ app.post('/api/enquiry', validateEnquiry, async (req, res) => {
       </head>
       <body>
         <div class="header">
-          <h1>New Enquiry - Vela</h1>
+          <h1>New Enquiry - Ayana</h1>
         </div>
         <div class="content">
           <div class="field">
@@ -275,14 +275,14 @@ app.post('/api/enquiry', validateEnquiry, async (req, res) => {
           </div>
         </div>
         <div class="footer">
-          This enquiry was submitted through the Vela website enquiry form with reCAPTCHA verification.
+          This enquiry was submitted through the Ayana website enquiry form with reCAPTCHA verification.
         </div>
       </body>
       </html>
     `;
 
     const emailText = `
-New Enquiry - Vela
+New Enquiry - Ayana
 
 Name: ${name}
 Email: ${email}
@@ -292,14 +292,14 @@ ${message ? `Message: ${message}\n` : ''}
 Submitted: ${new Date().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' })}
 reCAPTCHA: ✅ Verified
 
-This enquiry was submitted through the Vela website enquiry form with reCAPTCHA verification.
+This enquiry was submitted through the Ayana website enquiry form with reCAPTCHA verification.
     `;
 
     // Send email
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: process.env.EMAIL_TO || 'admin@zengroup.com.au',
-      subject: `New Vela Enquiry - ${name}`,
+      subject: `New Ayana Enquiry - ${name}`,
       text: emailText,
       html: emailHTML,
       replyTo: email
@@ -343,14 +343,14 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    service: 'Vela Backend'
+    service: 'Ayana Backend'
   });
 });
 
 // Only start the Express listener when running this file directly (e.g. local dev)
 if (isDirectRun && process.env.VERCEL !== '1') {
   app.listen(PORT, () => {
-    console.log(`🚀 Vela backend server running on port ${PORT}`);
+    console.log(`🚀 Ayana backend server running on port ${PORT}`);
     console.log(`📧 Email service: ${process.env.EMAIL_SERVICE || 'SMTP'}`);
     console.log(`🎯 Sending emails to: ${process.env.EMAIL_TO || 'admin@zengroup.com.au'}`);
   });
